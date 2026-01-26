@@ -1,17 +1,50 @@
-baseURL = "https://yutongjin.com"
-languageCode = "en-us"
-title = "Yutong Jin"
-theme = "PaperMod"
+baseURL = "https://yutongjin.com/"
 
 [params]
-  defaultTheme = "auto"
-  ShowReadingTime = true
-  ShowPostNavLinks = true
-  ShowShareButtons = true
+  # --- Home/Profile ---
+  [params.profileMode]
+    enabled = true
+    title = "Yutong Jin"
+    subtitle = "Software Engineer • Backend / ML Infra • Notes on systems, scaling, and engineering"
+    imageUrl = "/avatar.jpg"  # 放到 static/avatar.jpg
+    imageTitle = "Yutong Jin"
+    imageWidth = 140
+    imageHeight = 140
+
+    [[params.profileMode.buttons]]
+      name = "Posts"
+      url = "/posts/"
+
+    [[params.profileMode.buttons]]
+      name = "Now"
+      url = "/now/"
+
+    [[params.profileMode.buttons]]
+      name = "Projects"
+      url = "/projects/"
+
+  # --- Reading experience ---
+  ShowToc = true
+  TocOpen = true
+  ShowBreadCrumbs = true
+  ShowWordCount = true
+  ShowRssButtonInSectionTermList = true
+
+  # --- Code ---
   ShowCodeCopyButtons = true
 
-[menu]
-  [[menu.main]]
-    name = "Posts"
-    url = "/posts/"
-    weight = 1
+  # --- Search (PaperMod) ---
+  enableSearch = true
+
+  # --- Social icons ---
+  [[params.socialIcons]]
+    name = "github"
+    url = "https://github.com/yutongjin"
+
+  [[params.socialIcons]]
+    name = "linkedin"
+    url = "https://www.linkedin.com/in/YOUR-LINKEDIN/"
+
+  [[params.socialIcons]]
+    name = "email"
+    url = "mailto:YOUR_EMAIL@example.com"
