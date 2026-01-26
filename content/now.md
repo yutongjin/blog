@@ -1,5 +1,5 @@
 ---
-title: "Now"
+title: "Current me "
 date: 2026-01-26
 ---
 
