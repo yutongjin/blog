@@ -1,9 +1,8 @@
 ---
-title: "Now is now"
-date: 2026-01-26
----
-
----
 title: "Search"
+date: 2026-01-26
 layout: "search"
+outputs: ["HTML"]
+sitemap:
+  disable: true
 ---

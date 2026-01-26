@@ -1,4 +1,8 @@
 baseURL = "https://yutongjin.com/"
+languageCode = "en-us"
+title = "Yutong Jin"
+description = "Engineering notes on systems, scaling, and ML infra."
+theme = "PaperMod"
 
 [params]
   # --- Home/Profile ---
