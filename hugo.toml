@@ -1,0 +1,17 @@
+baseURL = "https://yutongjin.github.io/"
+languageCode = "en-us"
+title = "Yutong Jin"
+theme = "PaperMod"
+
+[params]
+  defaultTheme = "auto"
+  ShowReadingTime = true
+  ShowPostNavLinks = true
+  ShowShareButtons = true
+  ShowCodeCopyButtons = true
+
+[menu]
+  [[menu.main]]
+    name = "Posts"
+    url = "/posts/"
+    weight = 1
