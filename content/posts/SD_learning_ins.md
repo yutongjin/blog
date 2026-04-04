@@ -174,3 +174,10 @@ Two key takeaways:
 - Pre-signed URL + direct upload is essential for scalability
 - Async processing is critical for media pipelines
 - Feed systems must adapt based on user scale
+
+
+
+## Appendix:
+- why dynamoDB
+
+For an Instagram-like system, I would not use DynamoDB for the entire database. Instead, I would use it for the parts that need very high throughput, low latency, and simple key-based access patterns. For example, feed inbox entries, user follow relationships, or recent message metadata are good candidates.
