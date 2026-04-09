@@ -1,3 +1,10 @@
+---
+title: "System Design Interview Feedback (Calendar System)"
+date: 2026-04-3
+draft: false
+tags: ["blog", "engineering", "calendar"]
+---
+
 # System Design Interview Feedback (Calendar System)
 
 ---
