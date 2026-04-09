@@ -1,5 +1,5 @@
 ---
-title: "System Design Interview Feedback (Calendar System)"
+title: " Change Data Capture (CDC) Summary"
 date: 2026-04-09
 draft: false
 tags: ["blog", "engineering", "CDC"]
