@@ -4,11 +4,19 @@ date: 2026-04-19
 draft: false
 tags: ["blog", "engineering", "database", "nosql", "sql"]
 ---
-## Relational DB vs NoSQL 
+## Relational DB vs NoSQL — Interview Answer Template (with QPS Details)
 
 ### 1. Throughput & Scalability
 
-A relational database like MySQL can handle moderate QPS well, and we can scale it further with read replicas or sharding.
+A relational database like MySQL can handle moderate QPS well.
+
+#### Rough Numbers (rule of thumb, varies by setup):
+- **Single MySQL instance**
+  - ~1K – 5K QPS (typical production range)
+- **With read replicas**
+  - Reads can scale to **10K+ QPS**
+- **With sharding**
+  - Can scale to **100K+ QPS**, depending on number of shards
 
 However, sharding introduces additional complexity:
 - Choosing a good shard key
@@ -19,7 +27,7 @@ However, sharding introduces additional complexity:
 #### Example Tradeoffs:
 - **Shard by userId**
   - ✅ Good for user-centric queries
-  - ⚠️ May cause hotspots if traffic is skewed toward a few users
+  - ⚠️ May cause hotspots if traffic is skewed (e.g., celebrity users)
 
 - **Shard by itemId**
   - ✅ Better write distribution
@@ -30,24 +38,32 @@ However, sharding introduces additional complexity:
 ### 2. Consistency & Query Flexibility
 
 Relational databases are typically preferred when:
-- Strong consistency is required
-- Transactions are important
-- Queries are complex (JOINs, filtering, ad hoc queries)
+- Strong consistency is required (ACID transactions)
+- Multi-row / multi-table transactions are needed
+- Queries are complex (JOINs, filtering, aggregations)
 - Schema is well-defined
 
 ---
 
 ### 3. NoSQL Characteristics
 
-NoSQL databases are generally better when:
+NoSQL databases are generally designed for higher scalability.
+
+#### Rough Numbers:
+- **Single node (e.g., DynamoDB / Cassandra node)**
+  - Can handle **10K+ QPS**
+- **Distributed cluster**
+  - Can scale to **100K – millions of QPS**
+
+They are better when:
 - Very high read/write throughput is required
-- Horizontal scalability is needed
+- Horizontal scaling is needed
 - Access patterns are simple and predictable
 - Schema flexibility is desired
 
 ⚠️ Tradeoffs:
-- May provide weaker consistency guarantees (depending on system)
-- Limited transaction support
+- May provide weaker or tunable consistency (eventual consistency by default in many systems)
+- Limited or more complex transaction support
 - Less flexible querying compared to relational DBs
 
 > Important:  
@@ -62,12 +78,13 @@ NoSQL databases are generally better when:
 - Choose **Relational DB** when:
   - Strong consistency and transactions are critical
   - Complex queries are needed
+  - Scale is moderate (or manageable with sharding)
 
 - Choose **NoSQL** when:
-  - Massive scale and high throughput are required
+  - Massive scale (100K+ QPS) is required
   - Access patterns are simple
+  - Horizontal scaling is a priority
   - Some tradeoffs in consistency or querying are acceptable
-
 
 ## Why NoSQL Is Better at Sharding
 
