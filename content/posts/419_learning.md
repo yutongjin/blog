@@ -67,3 +67,38 @@ NoSQL databases are generally better when:
   - Massive scale and high throughput are required
   - Access patterns are simple
   - Some tradeoffs in consistency or querying are acceptable
+
+
+## Why NoSQL Is Better at Sharding
+
+### 1. Built-in Horizontal Partitioning
+
+NoSQL databases are designed to scale horizontally by default.
+
+- Data is automatically partitioned across nodes
+- The system handles:
+  - routing (which node to read/write)
+  - rebalancing
+  - replication
+
+Example:
+- Cassandra → consistent hashing
+- DynamoDB → partition key–based routing
+
+👉 In contrast, MySQL/Postgres:
+- Sharding is **application-level**
+- You must manually:
+  - choose shard key
+  - route queries
+  - manage rebalancing
+
+---
+
+### 2. Simple Access Patterns (Key-Based)
+
+NoSQL systems usually enforce:
+- Primary key or partition key access
+
+Example:
+```text
+GET /user/{userId}
