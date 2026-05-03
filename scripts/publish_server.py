@@ -30,7 +30,8 @@ class Publisher:
     def __init__(self, repo_root: Path, branch: str) -> None:
         self.repo_root = repo_root
         self.branch = branch
-        self.posts_dir = repo_root / "content" / "posts"
+        self.content_root = repo_root / "content"
+        self.posts_dir = self.content_root / "posts"
 
     def publish(self, payload: dict) -> dict:
         title = str(payload.get("title", "")).strip()
@@ -80,24 +81,49 @@ class Publisher:
         }
 
     def delete(self, payload: dict) -> dict:
-        slug = str(payload.get("slug", "")).strip()
-        if not slug:
-            raise PublishError("Slug is required.")
+        items = payload.get("items")
+        if not isinstance(items, list) or not items:
+            raise PublishError("Items must be a non-empty list.")
 
-        path = self.posts_dir / f"{slug}.md"
-        if not path.exists():
-            raise PublishError(f"{path.relative_to(self.repo_root)} does not exist.")
+        paths: list[Path] = []
+        rel_paths: list[str] = []
+        labels: list[str] = []
+        seen: set[str] = set()
+
+        for item in items:
+            if not isinstance(item, dict):
+                raise PublishError("Each item must be an object.")
+            section = str(item.get("section", "")).strip()
+            slug = str(item.get("slug", "")).strip()
+            if section not in {"posts", "projects"}:
+                raise PublishError("Section must be posts or projects.")
+            if not slug:
+                raise PublishError("Slug is required.")
+
+            rel_path = f"content/{section}/{slug}.md"
+            if rel_path in seen:
+                continue
+            seen.add(rel_path)
+
+            path = self.repo_root / rel_path
+            if not path.exists():
+                raise PublishError(f"{rel_path} does not exist.")
+
+            paths.append(path)
+            rel_paths.append(rel_path)
+            labels.append(f"{section[:-1]}:{slug}")
 
         try:
-            self._git("rm", str(path.relative_to(self.repo_root)))
-            self._git("commit", "-m", f"Delete post: {slug}")
+            self._git("rm", *rel_paths)
+            commit_subject = labels[0] if len(labels) == 1 else f"{labels[0]} +{len(labels) - 1} more"
+            self._git("commit", "-m", f"Delete content: {commit_subject}")
             commit = self._git("rev-parse", "HEAD").strip()
             self._git("push", "origin", self.branch)
         except subprocess.CalledProcessError as error:
             raise error
 
         return {
-            "path": str(path.relative_to(self.repo_root)),
+            "paths": rel_paths,
             "commit": commit,
         }
 

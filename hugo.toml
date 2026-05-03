@@ -20,16 +20,8 @@ theme = "PaperMod"
       url = "/posts/"
 
     [[params.profileMode.buttons]]
-      name = "Now"
-      url = "/now/"
-
-    [[params.profileMode.buttons]]
       name = "Projects"
       url = "/projects/"
-
-    [[params.profileMode.buttons]]
-      name = "Admin"
-      url = "/admin/"
 
   # --- Reading experience ---
   ShowToc = true
@@ -51,7 +43,15 @@ theme = "PaperMod"
 
   [[params.socialIcons]]
     name = "linkedin"
-    url = "https://www.linkedin.com/in/YOUR-LINKEDIN/"
+    url = "https://www.linkedin.com/in/yutong-jin/"
+
+  [[params.socialIcons]]
+    name = "bilibili"
+    url = "https://space.bilibili.com/336708395"
+
+  [[params.socialIcons]]
+    name = "youtube"
+    url = "https://www.youtube.com/@yutongjin6521"
 
   [[params.socialIcons]]
     name = "email"

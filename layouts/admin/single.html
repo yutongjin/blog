@@ -42,6 +42,9 @@
         min-height: 18rem;
         resize: vertical;
       }
+      .admin-field select[multiple] {
+        min-height: 18rem;
+      }
       .admin-help {
         color: var(--secondary);
         font-size: 0.95rem;
@@ -162,26 +165,28 @@
       </form>
 
       <form class="admin-panel" id="delete-form">
-        <h2>Delete Post</h2>
+        <h2>Delete Content</h2>
         <div class="admin-grid">
           <div class="admin-field">
-            <label for="delete-slug">Select post</label>
-            <select id="delete-slug" name="slug" required>
-              <option value="">Choose a post to delete</option>
+            <label for="delete-slug">Select pages</label>
+            <select id="delete-slug" name="slug" multiple required>
               {{- range (where site.RegularPages "Section" "posts").ByDate.Reverse }}
-              <option value="{{ .File.ContentBaseName }}">{{ .Title }} ({{ .File.ContentBaseName }})</option>
+              <option value="posts:{{ .File.ContentBaseName }}">{{ .Title }} [post] ({{ .File.ContentBaseName }})</option>
+              {{- end }}
+              {{- range (where site.RegularPages "Section" "projects").ByDate }}
+              <option value="projects:{{ .File.ContentBaseName }}">{{ .Title }} [project] ({{ .File.ContentBaseName }})</option>
               {{- end }}
             </select>
           </div>
         </div>
         <label class="admin-checkbox" for="delete-confirm">
           <input id="delete-confirm" name="confirm" type="checkbox">
-          <span>I understand this deletes the post file and pushes the change.</span>
+          <span>I understand this deletes the selected files and pushes the change.</span>
         </label>
         <div class="admin-actions">
           <button class="admin-button admin-button-danger" id="delete-button" type="submit">Delete</button>
         </div>
-        <div class="admin-help">The dropdown is built from files in <code>content/posts/</code>. The value sent to the server is the Markdown filename without <code>.md</code>.</div>
+        <div class="admin-help">This list includes both <code>content/posts/</code> and <code>content/projects/</code> pages. Use standard multi-select gestures to choose more than one item.</div>
       </form>
 
       <div class="admin-status" id="status" aria-live="polite"></div>
@@ -296,21 +301,27 @@
             setStatus("Check the confirmation box before deleting.", "error");
             return;
           }
+          const selectedOptions = Array.from(deleteSlugEl.selectedOptions);
+          if (selectedOptions.length === 0) {
+            setStatus("Select at least one page to delete.", "error");
+            return;
+          }
 
           publishButton.disabled = true;
           deleteButton.disabled = true;
           setStatus("Deleting...", "");
 
           try {
-            const data = await request("/delete", {
-              slug: deleteForm.slug.value.trim()
+            const items = selectedOptions.map((option) => {
+              const [section, slug] = option.value.split(":");
+              return { section, slug };
             });
-            setStatus(`Deleted ${data.path} in commit ${data.commit || "pending"}.`, "success");
+            const data = await request("/delete", {
+              items
+            });
+            setStatus(`Deleted ${data.paths.length} file(s) in commit ${data.commit || "pending"}.`, "success");
             passwordEl.value = "";
-            if (deleteSlugEl.value) {
-              deleteSlugEl.querySelector(`option[value="${CSS.escape(deleteSlugEl.value)}"]`)?.remove();
-            }
-            deleteForm.slug.value = "";
+            selectedOptions.forEach((option) => option.remove());
             deleteForm.confirm.checked = false;
           } catch (error) {
             setStatus(error.message || "Delete failed.", "error");
