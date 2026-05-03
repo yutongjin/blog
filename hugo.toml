@@ -28,8 +28,8 @@ theme = "PaperMod"
       url = "/projects/"
 
     [[params.profileMode.buttons]]
-      name = "Write"
-      url = "/write/"
+      name = "Admin"
+      url = "/admin/"
 
   # --- Reading experience ---
   ShowToc = true

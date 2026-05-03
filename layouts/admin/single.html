@@ -1,0 +1,234 @@
+{{- define "main" }}
+<article class="post-single admin-page">
+  <header class="post-header">
+    <h1 class="post-title">Publish a Post</h1>
+    <div class="post-description">
+      Private mobile editor for creating a new blog post.
+    </div>
+  </header>
+
+  <div class="post-content">
+    <style>
+      .admin-shell {
+        display: grid;
+        gap: 1rem;
+        max-width: 760px;
+      }
+      .admin-grid {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      }
+      .admin-field {
+        display: grid;
+        gap: 0.4rem;
+      }
+      .admin-field label {
+        font-size: 0.95rem;
+        font-weight: 600;
+      }
+      .admin-field input,
+      .admin-field textarea {
+        width: 100%;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--entry);
+        color: var(--primary);
+        padding: 0.9rem 1rem;
+        font: inherit;
+      }
+      .admin-field textarea {
+        min-height: 18rem;
+        resize: vertical;
+      }
+      .admin-help {
+        color: var(--secondary);
+        font-size: 0.95rem;
+      }
+      .admin-actions {
+        display: flex;
+        gap: 0.75rem;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .admin-button {
+        border: 0;
+        border-radius: 999px;
+        background: var(--primary);
+        color: var(--theme);
+        font: inherit;
+        font-weight: 700;
+        padding: 0.85rem 1.3rem;
+        cursor: pointer;
+      }
+      .admin-button[disabled] {
+        opacity: 0.65;
+        cursor: wait;
+      }
+      .admin-checkbox {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+      }
+      .admin-status {
+        min-height: 1.5rem;
+        font-size: 0.95rem;
+      }
+      .admin-status[data-state="error"] {
+        color: #b42318;
+      }
+      .admin-status[data-state="success"] {
+        color: #027a48;
+      }
+      @media (max-width: 640px) {
+        .admin-button {
+          width: 100%;
+          justify-content: center;
+        }
+      }
+    </style>
+
+    <form class="admin-shell" id="admin-form">
+      <div class="admin-grid">
+        <div class="admin-field">
+          <label for="endpoint">Publish endpoint</label>
+          <input id="endpoint" name="endpoint" type="url" inputmode="url" placeholder="https://your-publisher.example.com" required>
+        </div>
+        <div class="admin-field">
+          <label for="username">Username</label>
+          <input id="username" name="username" type="text" autocomplete="username" required>
+        </div>
+        <div class="admin-field">
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" autocomplete="current-password" required>
+        </div>
+      </div>
+
+      <div class="admin-grid">
+        <div class="admin-field">
+          <label for="title">Title</label>
+          <input id="title" name="title" type="text" placeholder="Post title" required>
+        </div>
+        <div class="admin-field">
+          <label for="slug">Slug</label>
+          <input id="slug" name="slug" type="text" placeholder="optional-custom-slug">
+        </div>
+      </div>
+
+      <div class="admin-grid">
+        <div class="admin-field">
+          <label for="tags">Tags</label>
+          <input id="tags" name="tags" type="text" placeholder="engineering, systems, notes">
+        </div>
+        <div class="admin-field">
+          <label for="date">Date</label>
+          <input id="date" name="date" type="date" required>
+        </div>
+      </div>
+
+      <label class="admin-checkbox" for="draft">
+        <input id="draft" name="draft" type="checkbox">
+        <span>Save as draft</span>
+      </label>
+
+      <div class="admin-field">
+        <label for="body">Body</label>
+        <textarea id="body" name="body" placeholder="Write Markdown here." required></textarea>
+        <div class="admin-help">Posts are saved into <code>content/posts/</code> and published by the existing GitHub Action after the server pushes the commit.</div>
+      </div>
+
+      <div class="admin-actions">
+        <button class="admin-button" id="publish-button" type="submit">Publish</button>
+      </div>
+      <div class="admin-status" id="status" aria-live="polite"></div>
+    </form>
+
+    <script>
+      (() => {
+        const form = document.getElementById("admin-form");
+        const button = document.getElementById("publish-button");
+        const statusEl = document.getElementById("status");
+        const endpointEl = document.getElementById("endpoint");
+        const usernameEl = document.getElementById("username");
+        const dateEl = document.getElementById("date");
+        const titleEl = document.getElementById("title");
+        const slugEl = document.getElementById("slug");
+
+        const storageKeys = {
+          endpoint: "blogAdminEndpoint",
+          username: "blogAdminUsername"
+        };
+
+        endpointEl.value = localStorage.getItem(storageKeys.endpoint) || "";
+        usernameEl.value = localStorage.getItem(storageKeys.username) || "";
+        dateEl.value = new Date().toISOString().slice(0, 10);
+
+        titleEl.addEventListener("input", () => {
+          if (slugEl.value.trim() !== "") {
+            return;
+          }
+          slugEl.placeholder = titleEl.value
+            .toLowerCase()
+            .trim()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-+|-+$/g, "") || "optional-custom-slug";
+        });
+
+        const setStatus = (message, state) => {
+          statusEl.textContent = message;
+          statusEl.dataset.state = state || "";
+        };
+
+        form.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          button.disabled = true;
+          setStatus("Publishing...", "");
+
+          localStorage.setItem(storageKeys.endpoint, endpointEl.value.trim());
+          localStorage.setItem(storageKeys.username, usernameEl.value.trim());
+
+          const payload = {
+            title: form.title.value.trim(),
+            slug: form.slug.value.trim(),
+            date: form.date.value,
+            draft: form.draft.checked,
+            tags: form.tags.value
+              .split(",")
+              .map((tag) => tag.trim())
+              .filter(Boolean),
+            body: form.body.value
+          };
+
+          try {
+            const response = await fetch(`${endpointEl.value.replace(/\/+$/, "")}/publish`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Basic ${btoa(`${usernameEl.value}:${form.password.value}`)}`
+              },
+              body: JSON.stringify(payload)
+            });
+
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+              throw new Error(data.error || `Request failed with ${response.status}`);
+            }
+
+            setStatus(`Published ${data.path} in commit ${data.commit || "pending"}.`, "success");
+            form.password.value = "";
+            form.body.value = "";
+            form.title.value = "";
+            form.slug.value = "";
+            form.tags.value = "";
+            form.draft.checked = false;
+          } catch (error) {
+            setStatus(error.message || "Publishing failed.", "error");
+          } finally {
+            button.disabled = false;
+          }
+        });
+      })();
+    </script>
+  </div>
+</article>
+{{- end }}

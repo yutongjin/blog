@@ -4,7 +4,15 @@ date = 2026-05-02T00:00:00-07:00
 draft = false
 +++
 
-Update the blog from your iPhone with GitHub's mobile editor.
+Update the blog from your iPhone.
+
+Preferred flow:
+
+- Open [Admin](/admin/) to create a post in the private mobile editor.
+
+Fallback flow:
+
+- Use GitHub's mobile editor if the private publisher is unavailable.
 
 Best flow:
 
