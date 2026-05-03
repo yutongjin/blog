@@ -61,3 +61,7 @@ theme = "PaperMod"
     URL = "https://github.com/yutongjin/blog/edit/main/content"
     Text = "Edit on GitHub"
     appendFilePath = true
+
+  [params.admin]
+    publishEndpoint = "https://macbook-air.tail5b147d.ts.net"
+    username = "yutong"

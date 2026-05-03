@@ -158,9 +158,13 @@
           endpoint: "blogAdminEndpoint",
           username: "blogAdminUsername"
         };
+        const defaults = {
+          endpoint: {{ site.Params.admin.publishEndpoint | default "" | jsonify }},
+          username: {{ site.Params.admin.username | default "" | jsonify }}
+        };
 
-        endpointEl.value = localStorage.getItem(storageKeys.endpoint) || "";
-        usernameEl.value = localStorage.getItem(storageKeys.username) || "";
+        endpointEl.value = localStorage.getItem(storageKeys.endpoint) || defaults.endpoint;
+        usernameEl.value = localStorage.getItem(storageKeys.username) || defaults.username;
         dateEl.value = new Date().toISOString().slice(0, 10);
 
         titleEl.addEventListener("input", () => {
