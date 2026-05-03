@@ -27,6 +27,10 @@ theme = "PaperMod"
       name = "Projects"
       url = "/projects/"
 
+    [[params.profileMode.buttons]]
+      name = "Write"
+      url = "/write/"
+
   # --- Reading experience ---
   ShowToc = true
   TocOpen = true
@@ -52,3 +56,8 @@ theme = "PaperMod"
   [[params.socialIcons]]
     name = "email"
     url = "mailto:YOUR_EMAIL@example.com"
+
+  [params.editPost]
+    URL = "https://github.com/yutongjin/blog/edit/main/content"
+    Text = "Edit on GitHub"
+    appendFilePath = true
