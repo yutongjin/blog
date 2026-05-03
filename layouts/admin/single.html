@@ -28,6 +28,7 @@
         font-weight: 600;
       }
       .admin-field input,
+      .admin-field select,
       .admin-field textarea {
         width: 100%;
         border: 1px solid var(--border);
@@ -51,6 +52,18 @@
         align-items: center;
         flex-wrap: wrap;
       }
+      .admin-panel {
+        display: grid;
+        gap: 1rem;
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 1rem;
+        background: color-mix(in srgb, var(--entry) 78%, transparent);
+      }
+      .admin-panel h2 {
+        margin: 0;
+        font-size: 1.1rem;
+      }
       .admin-button {
         border: 0;
         border-radius: 999px;
@@ -64,6 +77,10 @@
       .admin-button[disabled] {
         opacity: 0.65;
         cursor: wait;
+      }
+      .admin-button-danger {
+        background: #b42318;
+        color: #fff;
       }
       .admin-checkbox {
         display: flex;
@@ -88,7 +105,7 @@
       }
     </style>
 
-    <form class="admin-shell" id="admin-form">
+    <div class="admin-shell">
       <div class="admin-grid">
         <div class="admin-field">
           <label for="endpoint">Publish endpoint</label>
@@ -104,55 +121,86 @@
         </div>
       </div>
 
-      <div class="admin-grid">
-        <div class="admin-field">
-          <label for="title">Title</label>
-          <input id="title" name="title" type="text" placeholder="Post title" required>
+      <form class="admin-panel" id="publish-form">
+        <h2>New Post</h2>
+        <div class="admin-grid">
+          <div class="admin-field">
+            <label for="title">Title</label>
+            <input id="title" name="title" type="text" placeholder="Post title" required>
+          </div>
+          <div class="admin-field">
+            <label for="slug">Slug</label>
+            <input id="slug" name="slug" type="text" placeholder="optional-custom-slug">
+          </div>
         </div>
-        <div class="admin-field">
-          <label for="slug">Slug</label>
-          <input id="slug" name="slug" type="text" placeholder="optional-custom-slug">
+
+        <div class="admin-grid">
+          <div class="admin-field">
+            <label for="tags">Tags</label>
+            <input id="tags" name="tags" type="text" placeholder="engineering, systems, notes">
+          </div>
+          <div class="admin-field">
+            <label for="date">Date</label>
+            <input id="date" name="date" type="date" required>
+          </div>
         </div>
-      </div>
 
-      <div class="admin-grid">
+        <label class="admin-checkbox" for="draft">
+          <input id="draft" name="draft" type="checkbox">
+          <span>Save as draft</span>
+        </label>
+
         <div class="admin-field">
-          <label for="tags">Tags</label>
-          <input id="tags" name="tags" type="text" placeholder="engineering, systems, notes">
+          <label for="body">Body</label>
+          <textarea id="body" name="body" placeholder="Write Markdown here." required></textarea>
+          <div class="admin-help">Posts are saved into <code>content/posts/</code> and published by the existing GitHub Action after the server pushes the commit.</div>
         </div>
-        <div class="admin-field">
-          <label for="date">Date</label>
-          <input id="date" name="date" type="date" required>
+
+        <div class="admin-actions">
+          <button class="admin-button" id="publish-button" type="submit">Publish</button>
         </div>
-      </div>
+      </form>
 
-      <label class="admin-checkbox" for="draft">
-        <input id="draft" name="draft" type="checkbox">
-        <span>Save as draft</span>
-      </label>
+      <form class="admin-panel" id="delete-form">
+        <h2>Delete Post</h2>
+        <div class="admin-grid">
+          <div class="admin-field">
+            <label for="delete-slug">Select post</label>
+            <select id="delete-slug" name="slug" required>
+              <option value="">Choose a post to delete</option>
+              {{- range (where site.RegularPages "Section" "posts").ByDate.Reverse }}
+              <option value="{{ .File.ContentBaseName }}">{{ .Title }} ({{ .File.ContentBaseName }})</option>
+              {{- end }}
+            </select>
+          </div>
+        </div>
+        <label class="admin-checkbox" for="delete-confirm">
+          <input id="delete-confirm" name="confirm" type="checkbox">
+          <span>I understand this deletes the post file and pushes the change.</span>
+        </label>
+        <div class="admin-actions">
+          <button class="admin-button admin-button-danger" id="delete-button" type="submit">Delete</button>
+        </div>
+        <div class="admin-help">The dropdown is built from files in <code>content/posts/</code>. The value sent to the server is the Markdown filename without <code>.md</code>.</div>
+      </form>
 
-      <div class="admin-field">
-        <label for="body">Body</label>
-        <textarea id="body" name="body" placeholder="Write Markdown here." required></textarea>
-        <div class="admin-help">Posts are saved into <code>content/posts/</code> and published by the existing GitHub Action after the server pushes the commit.</div>
-      </div>
-
-      <div class="admin-actions">
-        <button class="admin-button" id="publish-button" type="submit">Publish</button>
-      </div>
       <div class="admin-status" id="status" aria-live="polite"></div>
-    </form>
+    </div>
 
     <script>
       (() => {
-        const form = document.getElementById("admin-form");
-        const button = document.getElementById("publish-button");
+        const publishForm = document.getElementById("publish-form");
+        const deleteForm = document.getElementById("delete-form");
+        const publishButton = document.getElementById("publish-button");
+        const deleteButton = document.getElementById("delete-button");
         const statusEl = document.getElementById("status");
         const endpointEl = document.getElementById("endpoint");
         const usernameEl = document.getElementById("username");
+        const passwordEl = document.getElementById("password");
         const dateEl = document.getElementById("date");
         const titleEl = document.getElementById("title");
         const slugEl = document.getElementById("slug");
+        const deleteSlugEl = document.getElementById("delete-slug");
 
         const storageKeys = {
           endpoint: "blogAdminEndpoint",
@@ -183,52 +231,92 @@
           statusEl.dataset.state = state || "";
         };
 
-        form.addEventListener("submit", async (event) => {
-          event.preventDefault();
-          button.disabled = true;
-          setStatus("Publishing...", "");
+        const getAuthHeaders = () => ({
+          "Content-Type": "application/json",
+          "Authorization": `Basic ${btoa(`${usernameEl.value}:${passwordEl.value}`)}`
+        });
 
+        const rememberConnection = () => {
           localStorage.setItem(storageKeys.endpoint, endpointEl.value.trim());
           localStorage.setItem(storageKeys.username, usernameEl.value.trim());
+        };
+
+        const request = async (path, payload) => {
+          rememberConnection();
+          const response = await fetch(`${endpointEl.value.replace(/\/+$/, "")}${path}`, {
+            method: "POST",
+            headers: getAuthHeaders(),
+            body: JSON.stringify(payload)
+          });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            throw new Error(data.error || `Request failed with ${response.status}`);
+          }
+          return data;
+        };
+
+        publishForm.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          publishButton.disabled = true;
+          deleteButton.disabled = true;
+          setStatus("Publishing...", "");
 
           const payload = {
-            title: form.title.value.trim(),
-            slug: form.slug.value.trim(),
-            date: form.date.value,
-            draft: form.draft.checked,
-            tags: form.tags.value
+            title: publishForm.title.value.trim(),
+            slug: publishForm.slug.value.trim(),
+            date: publishForm.date.value,
+            draft: publishForm.draft.checked,
+            tags: publishForm.tags.value
               .split(",")
               .map((tag) => tag.trim())
               .filter(Boolean),
-            body: form.body.value
+            body: publishForm.body.value
           };
 
           try {
-            const response = await fetch(`${endpointEl.value.replace(/\/+$/, "")}/publish`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Basic ${btoa(`${usernameEl.value}:${form.password.value}`)}`
-              },
-              body: JSON.stringify(payload)
-            });
-
-            const data = await response.json().catch(() => ({}));
-            if (!response.ok) {
-              throw new Error(data.error || `Request failed with ${response.status}`);
-            }
-
+            const data = await request("/publish", payload);
             setStatus(`Published ${data.path} in commit ${data.commit || "pending"}.`, "success");
-            form.password.value = "";
-            form.body.value = "";
-            form.title.value = "";
-            form.slug.value = "";
-            form.tags.value = "";
-            form.draft.checked = false;
+            passwordEl.value = "";
+            publishForm.body.value = "";
+            publishForm.title.value = "";
+            publishForm.slug.value = "";
+            publishForm.tags.value = "";
+            publishForm.draft.checked = false;
           } catch (error) {
             setStatus(error.message || "Publishing failed.", "error");
           } finally {
-            button.disabled = false;
+            publishButton.disabled = false;
+            deleteButton.disabled = false;
+          }
+        });
+
+        deleteForm.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          if (!deleteForm.confirm.checked) {
+            setStatus("Check the confirmation box before deleting.", "error");
+            return;
+          }
+
+          publishButton.disabled = true;
+          deleteButton.disabled = true;
+          setStatus("Deleting...", "");
+
+          try {
+            const data = await request("/delete", {
+              slug: deleteForm.slug.value.trim()
+            });
+            setStatus(`Deleted ${data.path} in commit ${data.commit || "pending"}.`, "success");
+            passwordEl.value = "";
+            if (deleteSlugEl.value) {
+              deleteSlugEl.querySelector(`option[value="${CSS.escape(deleteSlugEl.value)}"]`)?.remove();
+            }
+            deleteForm.slug.value = "";
+            deleteForm.confirm.checked = false;
+          } catch (error) {
+            setStatus(error.message || "Delete failed.", "error");
+          } finally {
+            publishButton.disabled = false;
+            deleteButton.disabled = false;
           }
         });
       })();

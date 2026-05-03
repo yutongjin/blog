@@ -79,6 +79,28 @@ class Publisher:
             "commit": commit,
         }
 
+    def delete(self, payload: dict) -> dict:
+        slug = str(payload.get("slug", "")).strip()
+        if not slug:
+            raise PublishError("Slug is required.")
+
+        path = self.posts_dir / f"{slug}.md"
+        if not path.exists():
+            raise PublishError(f"{path.relative_to(self.repo_root)} does not exist.")
+
+        try:
+            self._git("rm", str(path.relative_to(self.repo_root)))
+            self._git("commit", "-m", f"Delete post: {slug}")
+            commit = self._git("rev-parse", "HEAD").strip()
+            self._git("push", "origin", self.branch)
+        except subprocess.CalledProcessError as error:
+            raise error
+
+        return {
+            "path": str(path.relative_to(self.repo_root)),
+            "commit": commit,
+        }
+
     def _render_post(self, title: str, post_date: str, draft: bool, tags: list[str], body: str) -> str:
         tag_line = ", ".join(json.dumps(tag, ensure_ascii=False) for tag in tags)
         return (
@@ -117,7 +139,7 @@ class PublishHandler(BaseHTTPRequestHandler):
         self._send_json(HTTPStatus.OK, {"status": "ok"})
 
     def do_POST(self) -> None:
-        if self.path != "/publish":
+        if self.path not in {"/publish", "/delete"}:
             self._send_json(HTTPStatus.NOT_FOUND, {"error": "Not found"})
             return
 
@@ -136,7 +158,10 @@ class PublishHandler(BaseHTTPRequestHandler):
             return
 
         try:
-            result = self.server.publisher.publish(payload)
+            if self.path == "/publish":
+                result = self.server.publisher.publish(payload)
+            else:
+                result = self.server.publisher.delete(payload)
         except PublishError as error:
             self._send_json(HTTPStatus.BAD_REQUEST, {"error": str(error)})
             return
